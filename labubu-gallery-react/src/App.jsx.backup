@@ -8,14 +8,17 @@ import SortControls from './components/SortControls';
 import { useGallery } from './hooks/useGallery';
 import { useModal } from './hooks/useModal';
 import { ClickStatsProvider } from './contexts/ClickStatsProvider';
-import { LanguageProvider } from './contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { stats } from './data/galleryData.js'; // 添加.js扩展名
 import './styles/lazy-loading.css';
 import './styles/button-focus-fix.css';
 
 /**
  * 主应用组件 - 优化懒加载版本，避免闪屏白屏
  */
-function App() {
+function AppContent() {
+  const { translateTag } = useLanguage(); // 使用语言上下文
+  
   // 根据屏幕大小设置侧边栏初始状态
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     // 如果是服务端渲染或者窗口对象不存在，默认为true
@@ -50,10 +53,12 @@ function App() {
     closeModal
   } = useModal();
 
-  // 标签点击处理 - 搜索对应标签
+  // 标签点击处理 - 搜索对应标签，显示翻译后的标签
   const handleTagClick = useCallback((tag) => {
-    handleSearch(tag); // 使用现有的搜索功能
-  }, [handleSearch]);
+    const translatedTag = translateTag(tag);
+    handleSearch(translatedTag); // 使用翻译后的标签进行搜索显示
+  }, [handleSearch, translateTag]);
+  
   useEffect(() => {
     const handleResize = () => {
       // 在移动端（小于1024px）时自动关闭侧边栏
@@ -96,9 +101,7 @@ function App() {
   }, [items, openModal]); // 依赖items和openModal
 
   return (
-    <LanguageProvider>
-      <ClickStatsProvider>
-        <div className="min-h-screen custom-scrollbar">
+    <div className="min-h-screen custom-scrollbar">
       {/* Pixiv风格侧边栏 */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -287,7 +290,7 @@ function App() {
           text-decoration: underline;
         }
 
-        /* 减少动画对性能的影响 */
+        /* 减少动画对性能影响 */
         @media (prefers-reduced-motion: reduce) {
           * {
             animation-duration: 0.01ms !important;
@@ -324,7 +327,15 @@ function App() {
           }
         }
       `}</style>
-      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <LanguageProvider>
+      <ClickStatsProvider>
+        <AppContent />
       </ClickStatsProvider>
     </LanguageProvider>
   );

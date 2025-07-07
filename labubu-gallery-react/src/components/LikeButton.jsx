@@ -75,8 +75,8 @@ const LikeButton = ({
         ${className}
       `}
       style={{ 
-        height: size === 'small' ? '32px' : '40px', // 32px = 8*4, 40px = 8*5
-        width: square ? (size === 'small' ? '32px' : '40px') : 'auto', // 正方形时设置宽度
+        height: size === 'small' ? '32px' : '40px',
+        width: square ? (size === 'small' ? '32px' : '40px') : 'auto',
         padding: square ? '0' : (size === 'small' ? '0 8px' : '0 12px')
       }}
       whileHover={{ scale: 1.05 }}

@@ -2,12 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Eye, Heart, Download } from 'lucide-react';
 import { useClickStatsContext } from '../contexts/ClickStatsProvider';
+import { useTagTranslation } from '../hooks/useTagTranslation';
+import { useTitleTranslation } from '../hooks/useTitleTranslation';
 import LikeButton from './LikeButton';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const HoverInfoOverlay = ({ item, isVisible }) => {
   const { t } = useLanguage();
   const { getStats } = useClickStatsContext();
+  const { translateTag } = useTagTranslation();
+  const { translateTitle } = useTitleTranslation();
   
   if (!isVisible) return null;
   
@@ -44,7 +48,7 @@ const HoverInfoOverlay = ({ item, isVisible }) => {
         {/* 标题区域 - 紧凑布局使用更小的间距和字体 */}
         <div className={compactLayout ? "mb-1" : "mb-3"}>
           <h3 className={`text-white font-medium ${compactLayout ? 'text-xs' : 'text-sm'} line-clamp-1 mb-1`}>
-            {item.title || t('untitledWallpaper')}
+            {translateTitle(item.title) || t('untitledWallpaper')}
           </h3>
           {item.author && !compactLayout && (
             <p className="text-white/80 text-xs">
@@ -61,7 +65,7 @@ const HoverInfoOverlay = ({ item, isVisible }) => {
                 key={index}
                 className="px-2 py-1 bg-white/20 text-white text-xs rounded-full backdrop-blur-sm"
               >
-                {tag}
+                {translateTag(tag)}
               </span>
             ))}
             {item.tags.length > 3 && (
@@ -80,7 +84,7 @@ const HoverInfoOverlay = ({ item, isVisible }) => {
                 key={index}
                 className="px-1 py-0.5 bg-white/20 text-white text-xs rounded-full backdrop-blur-sm"
               >
-                {tag}
+                {translateTag(tag)}
               </span>
             ))}
             {item.tags.length > 2 && (
@@ -114,10 +118,16 @@ const HoverInfoOverlay = ({ item, isVisible }) => {
               wallpaperId={item.id}
               size="small"
               showCount={false}
-              className={`${compactLayout ? '!px-1 !py-0.5' : '!px-2 !py-1'} !gap-0 !bg-white/20 !text-white !border-white/30 hover:!bg-white/30 backdrop-blur-sm !rounded-md`}
+              square={true}
+              className="!bg-white/20 !text-white !border-white/30 hover:!bg-white/30 backdrop-blur-sm !rounded-md"
             />
             <motion.button
-              className={`${compactLayout ? 'px-1 py-0.5' : 'px-2 py-1'} bg-white/20 text-white border border-white/30 rounded-md hover:bg-white/30 transition-colors backdrop-blur-sm flex items-center justify-center`}
+              className="bg-white/20 text-white border border-white/30 rounded-md hover:bg-white/30 transition-colors backdrop-blur-sm flex items-center justify-center"
+              style={{
+                width: '32px',
+                height: '32px',
+                padding: '0'
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={(e) => {
@@ -129,7 +139,7 @@ const HoverInfoOverlay = ({ item, isVisible }) => {
                 window.dispatchEvent(event);
               }}
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3 h-3" />
             </motion.button>
           </div>
         </div>

@@ -7,14 +7,19 @@ import LikeCounter from './LikeCounter';
 import ErrorBoundary from './ErrorBoundary';
 import ShareModal from './ShareModal';
 import ShareModalErrorBoundary from './ShareModalErrorBoundary';
+import DownloadFormatSelector from './DownloadFormatSelector';
 import { useClickStatsContext } from '../contexts/ClickStatsProvider';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTagTranslation } from '../hooks/useTagTranslation';
+import { useTitleTranslation } from '../hooks/useTitleTranslation';
 
 /**
  * 模态框组件 - 移动端优化版本
  */
 const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
   const { t, currentLanguage } = useLanguage();
+  const { translateTag } = useTagTranslation();
+  const { translateTitle } = useTitleTranslation();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -103,84 +108,162 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
     };
   }, [isOpen, onClose]);
 
-  // 下载功能 - 移动端优化，添加超时处理
+  // 复制到剪贴板函数
+  const copyToClipboard = useCallback(async (text, message = '链接已复制到剪贴板') => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // 降级方案
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      alert(message);
+      console.log('📋 链接已复制:', text);
+    } catch (error) {
+      console.error('复制失败:', error);
+      alert(`复制失败，请手动复制链接:\n${text}`);
+    }
+  }, []);
+
+  // 高级下载功能 - 解决CORS问题，真正触发浏览器下载
   const handleDownload = useCallback(async (url, title) => {
     if (isDownloading) return;
     
     setIsDownloading(true);
+    
+    // 安全的文件名处理
+    const cleanTitle = (title || 'labubu-wallpaper').replace(/[<>:"/\\|?*]/g, '_');
+    const fileExtension = item?.format?.toLowerCase() || (item?.type === 'video' ? 'mp4' : 'jpg');
+    const fileName = `${cleanTitle}.${fileExtension}`;
+    
+    // 使用代理URL
+    const proxyUrl = url.replace('https://labubuwallpaper.com', '/download-proxy');
+
+    console.log('🚀 开始高级下载:', { url, proxyUrl, fileName, itemType: item?.type });
+    
     try {
-      // 创建超时控制
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+      // 方案1：使用fetch + Blob的方式，通过代理解决CORS问题
+      console.log('📥 尝试Fetch+Blob代理下载...');
       
-      // 使用fetch获取图片数据，然后创建blob下载
-      const response = await fetch(url, {
-        mode: 'cors',
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        // mode: 'cors' 在同源请求中不再需要
+        cache: 'no-cache',
         headers: {
-          'Accept': 'image/*'
-        },
-        signal: controller.signal
+          'Accept': item?.type === 'video' ? 'video/*' : 'image/*',
+        }
       });
       
-      clearTimeout(timeoutId);
-      
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
+      // 获取文件数据
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      console.log('📦 文件数据获取成功:', { 
+        size: blob.size, 
+        type: blob.type,
+        sizeKB: Math.round(blob.size / 1024) 
+      });
       
-      // 创建下载链接
+      // 创建Blob URL并下载
+      const blobUrl = URL.createObjectURL(blob);
+      
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `${title || 'labubu-wallpaper'}.${item?.format || 'jpg'}`;
+      link.download = fileName;
+      link.style.display = 'none';
       
-      // 触发下载
+      // 添加到DOM，点击，然后延迟移除
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
       
-      // 清理blob URL
-      window.URL.revokeObjectURL(blobUrl);
+      // 延迟清理，确保下载被触发
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        console.log('🧹 Modal Blob URL和链接已清理');
+      }, 100);
+      
+      console.log('✅ Fetch+Blob下载完成');
       
       // 记录下载统计
       if (item?.id) {
         recordClick(item.id, 'download');
       }
       
-    } catch (error) {
-      console.error('Download failed:', error);
-      // 降级方案：直接使用URL下载
+    } catch (fetchError) {
+      console.warn('⚠️ Fetch下载失败，尝试直链下载:', fetchError.message);
+      
       try {
+        // 方案2：降级到直链下载 (也使用代理)
+        console.log('📥 尝试直链代理下载...');
+        
         const link = document.createElement('a');
-        link.href = url;
-        link.download = `${title || 'labubu-wallpaper'}.${item?.format || 'jpg'}`;
-        link.target = '_blank';
+        link.href = proxyUrl;
+        link.download = fileName;
+        link.style.display = 'none';
         link.rel = 'noopener noreferrer';
         
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
+        console.log('✅ 直链下载完成');
+        
         // 记录下载统计
         if (item?.id) {
           recordClick(item.id, 'download');
         }
-      } catch (fallbackError) {
-        console.error('Fallback download failed:', fallbackError);
-        // 最后的降级方案：打开新窗口
-        window.open(url, '_blank', 'noopener,noreferrer');
         
-        // 记录下载统计（即使是打开新窗口）
+        // 短暂延时后检查是否需要显示指导
+        setTimeout(() => {
+          console.log('💡 如果没有开始下载，浏览器可能阻止了跨域下载');
+        }, 2000);
+        
+      } catch (directError) {
+        console.warn('⚠️ 直链下载也失败，显示用户指导:', directError.message);
+        
+        // 方案3：最终降级方案 - 用户指导 (使用原始URL)
+        const shouldOpenInNewTab = confirm(`自动下载失败，可能由于浏览器安全限制。\n\n请选择下载方式：\n✅ 确定：在新标签页打开文件，然后右键保存\n❌ 取消：复制文件链接，手动访问下载`);
+        
+        if (shouldOpenInNewTab) {
+          try {
+            const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+            if (newWindow) {
+              console.log('✅ 新窗口已打开，用户可以手动保存');
+              alert('💡 温馨提示：在新页面中右键点击文件选择"另存为"即可下载');
+            } else {
+              throw new Error('弹窗被阻止');
+            }
+          } catch (windowError) {
+            console.error('❌ 无法打开新窗口:', windowError.message);
+            copyToClipboard(url, '无法打开新窗口，链接已复制到剪贴板。请手动访问并下载。');
+          }
+        } else {
+          // 用户选择复制链接
+          copyToClipboard(url, '链接已复制到剪贴板。请手动访问并右键保存文件。');
+        }
+        
+        // 记录下载统计
         if (item?.id) {
           recordClick(item.id, 'download');
         }
       }
     } finally {
-      setTimeout(() => setIsDownloading(false), 1500); // 稍微延长重置时间
+      // 重置下载状态
+      setTimeout(() => setIsDownloading(false), 1000);
     }
-  }, [isDownloading, item]);
+  }, [isDownloading, item, recordClick, copyToClipboard]);
 
   // 标签点击处理
   const handleTagClick = useCallback((tag) => {
@@ -281,7 +364,7 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
                       <img
                         className={`max-w-full ${isMobile ? 'max-h-[50vh]' : 'max-h-[70vh]'} object-contain rounded-lg shadow-lg`}
                         src={isMobile ? getThumbnailUrl(item.url) : getHighResUrl(item.url)}
-                        alt={item.title}
+                        alt={translateTitle(item.title)}
                         onLoad={(e) => {
                           setImageLoaded(true);
                           getImageDimensions(e.target);
@@ -317,7 +400,7 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
                 {/* 作品标题区域 */}
                 <div className="relative p-4 sm:p-6 border-b border-gray-100">
                   <h1 className={`${isMobile ? 'text-base' : 'text-lg sm:text-xl'} font-bold text-gray-900 mb-3 leading-tight ${isMobile ? 'pr-8' : 'pr-4'}`}>
-                    {item.title}
+                    {translateTitle(item.title)}
                   </h1>
                   
                   {/* Pixiv风格作品信息 */}
@@ -330,32 +413,15 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
                   </div>
 
                   {/* Pixiv风格操作按钮 - 移动端优化 */}
-                  <div className={`flex gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
-                    <button
-                      onClick={() => handleDownload(getHighResUrl(item.url), item.title)}
-                      disabled={isDownloading}
-                      className={`download-btn no-focus-outline flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-md font-medium transition-colors ${
-                        isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-                      }`}
-                      style={{ 
-                        height: isMobile ? '32px' : '40px', // 32px = 8*4, 40px = 8*5
-                        padding: isMobile ? '0 8px' : '0 12px',
-                        fontSize: isMobile ? '12px' : '14px'
-                      }}
-                    >
-                      {isDownloading ? (
-                        <>
-                          <div className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} border-2 border-white border-t-transparent rounded-full animate-spin`}></div>
-                          <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>{t('downloading')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                          <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>{t('buttons.download')}</span>
-                        </>
-                      )}
-                    </button>
-
+                  <div className="flex items-center gap-2 justify-start">
+                    <DownloadFormatSelector
+                      item={item}
+                      isDownloading={isDownloading}
+                      onDownload={(url, title) => handleDownload(url, title)}
+                      isMobile={isMobile}
+                      className="flex-1"
+                    />
+                    
                     <ErrorBoundary>
                       <LikeButton 
                         wallpaperId={item.id}
@@ -367,11 +433,13 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
 
                     <button
                       onClick={handleShare}
-                      className="share-btn no-focus-outline border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all duration-200"
+                      className="share-btn no-focus-outline border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-all duration-200 flex items-center justify-center"
                       style={{ 
-                        height: isMobile ? '32px' : '40px', // 32px = 8*4, 40px = 8*5
-                        padding: isMobile ? '0 8px' : '0 12px'
+                        height: isMobile ? '32px' : '40px',
+                        width: isMobile ? '32px' : '40px',
+                        padding: '0'
                       }}
+                      title={t('buttons.share')}
                     >
                       <Share2 className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     </button>
@@ -399,17 +467,7 @@ const Modal = memo(({ isOpen, item, onClose, onTagClick }) => {
                     
                     {/* 自定义标签 */}
                     {item.tags && item.tags.slice(0, 6).filter(tag => tag && tag.trim()).map((tag, index) => {
-                      // 根据当前语言显示对应的标签文本
-                      let displayTag = tag;
-                      
-                      if (currentLanguage === 'zh') {
-                        // 中文环境：直接显示中文标签
-                        displayTag = tag;
-                      } else {
-                        // 英文或西班牙语环境：如果有翻译则显示翻译，否则显示原文
-                        const translation = t(`tagTranslations.${tag}`);
-                        displayTag = translation !== `tagTranslations.${tag}` ? translation : tag;
-                      }
+                      const displayTag = translateTag(tag);
                       
                       return (
                         <span

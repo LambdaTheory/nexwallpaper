@@ -24,6 +24,25 @@ export default defineConfig({
       'labubu-gallery.local',
       'wallpaper.local',
       'gallery.local'
-    ]
+    ],
+    proxy: {
+      // 配置代理来解决CORS问题
+      '/download-proxy': {
+        target: 'https://labubuwallpaper.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/download-proxy/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Proxy] ==> Request: ${req.method} ${proxyReq.path}`);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(`[Proxy] <== Response: ${proxyRes.statusCode} ${req.url}`);
+          });
+          proxy.on('error', (err, req, res) => {
+            console.error('[Proxy] Error: ', err);
+          });
+        }
+      }
+    }
   }
 })

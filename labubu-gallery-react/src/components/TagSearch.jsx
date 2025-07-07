@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Tag, X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTagTranslation } from '../hooks/useTagTranslation';
 
 /**
  * 标签搜索组件 - 提供智能标签搜索和筛选功能
  */
 const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
+  const { t } = useLanguage();
+  const { translateTag } = useTagTranslation();
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -90,10 +94,10 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Tag className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-800">智能标签搜索</h3>
+          <h3 className="text-lg font-semibold text-gray-800">{t('tagSearch.title') || '智能标签搜索'}</h3>
         </div>
         <div className="text-sm text-gray-500">
-          {filteredItems.length} / {items.length} 项目
+          {filteredItems.length} / {items.length} {t('tagSearch.items') || '项目'}
         </div>
       </div>
 
@@ -102,7 +106,7 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
-          placeholder="搜索标签..."
+          placeholder={t('tagSearch.placeholder') || '搜索标签...'}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg no-focus-outline transition-all duration-200"
@@ -113,13 +117,13 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
       {selectedTags.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">已选标签:</span>
+            <span className="text-sm font-medium text-gray-700">{t('tagSearch.selectedTags') || '已选标签'}:</span>
             <button
               onClick={clearAllTags}
               className="clear-tags-btn no-focus-outline text-xs text-red-500 hover:text-red-700"
               style={{ height: '24px', padding: '0 8px' }} // 24px = 8 * 3
             >
-              清除全部
+{t('tagSearch.clearAll') || '清除全部'}
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -131,7 +135,7 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
                 exit={{ scale: 0 }}
                 className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
               >
-                {tag}
+                {translateTag(tag)}
                 <button
                   onClick={() => removeTag(tag)}
                   className="hover:bg-blue-200 rounded-full"
@@ -151,7 +155,7 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
         className="w-full mb-4 text-sm text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
         style={{ height: '40px' }} // 40px = 8 * 5
       >
-        {isExpanded ? '收起标签分类' : '展开标签分类'}
+{isExpanded ? (t('tagSearch.collapse') || '收起标签分类') : (t('tagSearch.expand') || '展开标签分类')}
       </button>
 
       <AnimatePresence>
@@ -169,21 +173,21 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
                   <div key={category}>
                     <h4 className="text-sm font-medium text-gray-700 mb-2">{category}</h4>
                     <div className="flex flex-wrap gap-2">
-                      {tags.slice(0, 10).map(({ tag, count }) => (
-                        <button
-                          key={tag}
-                          onClick={() => addTag(tag)}
-                          disabled={selectedTags.includes(tag)}
-                          className={`rounded-full text-xs transition-colors ${
-                            selectedTags.includes(tag)
-                              ? 'bg-blue-100 text-blue-800 cursor-not-allowed'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                          style={{ height: '24px', padding: '0 12px' }} // 24px = 8 * 3
-                        >
-                          {tag} ({count})
-                        </button>
-                      ))}
+                                              {tags.slice(0, 10).map(({ tag, count }) => (
+                          <button
+                            key={tag}
+                            onClick={() => addTag(tag)}
+                            disabled={selectedTags.includes(tag)}
+                            className={`rounded-full text-xs transition-colors ${
+                              selectedTags.includes(tag)
+                                ? 'bg-blue-100 text-blue-800 cursor-not-allowed'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                            style={{ height: '24px', padding: '0 12px' }} // 24px = 8 * 3
+                          >
+                            {translateTag(tag)} ({count})
+                          </button>
+                        ))}
                     </div>
                   </div>
                 )
@@ -198,7 +202,7 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
           >
             {/* 热门标签 */}
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">热门标签</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">{t('tagSearch.popularTags') || '热门标签'}</h4>
               <div className="flex flex-wrap gap-2">
                 {filteredTags.slice(0, 20).map(({ tag, count }) => (
                   <button
@@ -212,7 +216,7 @@ const TagSearch = ({ items, onFilteredItemsChange, className = '' }) => {
                     }`}
                     style={{ height: '24px', padding: '0 12px' }} // 24px = 8 * 3
                   >
-                    {tag} ({count})
+                    {translateTag(tag)} ({count})
                   </button>
                 ))}
               </div>

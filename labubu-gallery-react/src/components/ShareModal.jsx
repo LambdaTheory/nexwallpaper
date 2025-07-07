@@ -5,6 +5,7 @@ import {
   Facebook, Twitter, Instagram, Linkedin, Send, Globe, Hash, Users
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTitleTranslation } from '../hooks/useTitleTranslation';
 import { generateShareMetadata, optimizeForPlatform } from '../utils/shareUtils';
 
 /**
@@ -12,6 +13,7 @@ import { generateShareMetadata, optimizeForPlatform } from '../utils/shareUtils'
  */
 const ShareModal = ({ isOpen, onClose, item }) => {
   const { t, currentLanguage } = useLanguage();
+  const { translateTitle } = useTitleTranslation();
   const [copied, setCopied] = useState(false);
   const [showAllRegions, setShowAllRegions] = useState(false);
 
@@ -665,11 +667,11 @@ const ShareModal = ({ isOpen, onClose, item }) => {
               <div className="flex items-center gap-4">
                 <img
                   src={item.url}
-                  alt={item.title}
+                  alt={translateTitle(item.title)}
                   className="w-16 h-16 object-cover rounded-lg shadow-md"
                 />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 truncate">{item.title}</h4>
+                  <h4 className="font-medium text-gray-900 truncate">{translateTitle(item.title)}</h4>
                   <p className="text-sm text-gray-500 mt-1">
                     {item.resolution} • {item.category}
                   </p>
