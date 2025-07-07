@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-07-07T04:10:17.295Z",
+  "summary": {
+    "existingItems": 404,
+    "scrapedItems": 350,
+    "duplicatesRemoved": 4,
+    "newItemsAdded": 344,
+    "totalItemsAfterMerge": 748
+  },
+  "statistics": {
+    "totalItems": 748,
+    "images": 692,
+    "videos": 56,
+    "byCategory": {
+      "fantasy": 226,
+      "mobile": 86,
+      "desktop": 157,
+      "4k": 69,
+      "seasonal": 78,
+      "holiday": 54,
+      "dynamic": 78
+    },
+    "bySource": {
+      "xyz": 400,
+      "com": 348
+    }
+  },
+  "qualityMetrics": {
+    "averageTitleLength": 39.61046511627907,
+    "itemsWithBackupUrls": 302,
+    "categoriesDistribution": 7
+  }
+}

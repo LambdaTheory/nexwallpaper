@@ -22,21 +22,41 @@ export const useClickStats = () => {
     };
   }, []);
 
-  // 从localStorage加载本地缓存数据
+  // 优先从服务器加载统计数据，localStorage作为备份
   useEffect(() => {
-    const loadLocalStats = () => {
+    const loadInitialStats = async () => {
+      let initialStats = {};
+      
+      // 1. 先尝试从localStorage加载本地缓存
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          const parsed = JSON.parse(saved);
-          setClickStats(parsed || {});
+          initialStats = JSON.parse(saved) || {};
+          setClickStats(initialStats);
+          console.log('📦 已加载本地缓存统计数据');
         }
       } catch (error) {
         console.error('Failed to load local stats:', error);
       }
+      
+      // 2. 如果在线，尝试从服务器加载并合并数据
+      if (isOnline) {
+        try {
+          const response = await statsAPI.healthCheck();
+          if (response.success) {
+            console.log('🌐 服务器连接正常，开始同步统计数据');
+            // 服务器正常，后续会通过loadBatchStats加载具体数据
+          }
+        } catch (error) {
+          console.warn('🔄 服务器暂时不可用，使用本地数据:', error.message);
+        }
+      } else {
+        console.log('📴 离线模式，使用本地数据');
+      }
     };
-    loadLocalStats();
-  }, []);
+    
+    loadInitialStats();
+  }, [isOnline]);
 
   // 保存到localStorage
   const saveLocalStats = useCallback((stats) => {
@@ -89,91 +109,142 @@ export const useClickStats = () => {
       return newStats;
     });
 
-    // 如果在线，同步到服务器
+    // 🌐 优先同步到服务器，实现跨浏览器实时同步
     if (isOnline) {
       try {
+        console.log(`🔄 正在同步操作到服务器: ${action} -> ${wallpaperId}`);
         const response = await statsAPI.recordAction(wallpaperId, action);
         
-        // 可选：用服务器数据更新本地状态
         if (response.success && response.data) {
-          setClickStats(prev => ({
-            ...prev,
-            [wallpaperId]: {
-              ...prev[wallpaperId],
-              serverData: response.data
+          console.log(`✅ 服务器同步成功: ${action}`);
+          
+          // 🎯 用服务器返回的权威数据更新本地状态
+          setClickStats(prev => {
+            const updated = {
+              ...prev,
+              [wallpaperId]: {
+                ...prev[wallpaperId],
+                totalClicks: response.data.view_count || 0,
+                likeStats: {
+                  totalLikes: response.data.like_count || 0
+                },
+                actions: {
+                  ...prev[wallpaperId]?.actions,
+                  download: response.data.download_count || 0
+                },
+                userInteractions: prev[wallpaperId]?.userInteractions || { isLiked: false },
+                serverData: response.data,
+                lastSyncTime: new Date().toISOString()
+              }
+            };
+            
+            // 同步保存到localStorage
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              console.log('💾 已更新本地缓存');
+            } catch (error) {
+              console.error('Failed to save to localStorage:', error);
             }
-          }));
+            
+            return updated;
+          });
         }
       } catch (error) {
-        console.error('❌ Server sync failed:', error);
+        console.error('❌ 服务器同步失败:', error);
+        console.log('🔄 操作已记录到本地，下次在线时会同步');
         // 失败时保持本地状态，不影响用户体验
       }
+    } else {
+      console.log('📴 离线模式，操作已记录到本地');
     }
   }, [isOnline]); // 只依赖isOnline
 
-  // 批量加载统计数据
+  // 批量加载统计数据 - 优先使用服务器数据实现跨浏览器同步
   const loadBatchStats = useCallback(async (wallpaperIds) => {
-    if (!wallpaperIds.length || !isOnline) return;
+    if (!wallpaperIds.length) return;
+    
+    // 如果离线，只使用本地数据
+    if (!isOnline) {
+      console.log('📴 离线模式，跳过服务器同步');
+      return;
+    }
     
     try {
       setIsLoading(true);
+      console.log(`🔄 正在从服务器同步 ${wallpaperIds.length} 个项目的统计数据...`);
+      
       const response = await statsAPI.getBatchStats(wallpaperIds);
       
       if (response.success && response.data) {
+        console.log('✅ 服务器数据同步成功');
         
         setClickStats(prev => {
           const updated = { ...prev };
           let hasChanges = false;
+          let syncedCount = 0;
           
           Object.entries(response.data).forEach(([id, serverData]) => {
             const current = updated[id] || {};
-            const newTotalClicks = Math.max(current.totalClicks || 0, serverData.view_count || 0);
-            const newLikeCount = Math.max(current.likeStats?.totalLikes || 0, serverData.like_count || 0);
-            const newDownloadCount = Math.max(current.actions?.download || 0, serverData.download_count || 0);
             
-            // 只在数据真正变化时才更新
+            // 🔄 优先使用服务器数据，确保跨浏览器一致性
+            const serverClicks = serverData.view_count || 0;
+            const serverLikes = serverData.like_count || 0;
+            const serverDownloads = serverData.download_count || 0;
+            
+            // 合并本地用户交互状态和服务器统计数据
+            const newStats = {
+              totalClicks: serverClicks,
+              likeStats: {
+                totalLikes: serverLikes
+              },
+              actions: {
+                ...current.actions,
+                download: serverDownloads
+              },
+              userInteractions: current.userInteractions || { isLiked: false },
+              serverData,
+              lastSyncTime: new Date().toISOString()
+            };
+            
+            // 检查是否需要更新
             if (
-              (current.totalClicks || 0) !== newTotalClicks ||
-              (current.likeStats?.totalLikes || 0) !== newLikeCount ||
-              (current.actions?.download || 0) !== newDownloadCount ||
-              !current.serverData
+              (current.totalClicks || 0) !== serverClicks ||
+              (current.likeStats?.totalLikes || 0) !== serverLikes ||
+              (current.actions?.download || 0) !== serverDownloads ||
+              !current.serverData ||
+              !current.lastSyncTime
             ) {
               hasChanges = true;
-              updated[id] = {
-                ...current,
-                totalClicks: newTotalClicks,
-                likeStats: {
-                  ...current.likeStats,
-                  totalLikes: newLikeCount
-                },
-                actions: {
-                  ...current.actions,
-                  download: newDownloadCount
-                },
-                serverData
-              };
+              syncedCount++;
+              updated[id] = newStats;
             }
           });
           
           if (hasChanges) {
-            // 直接保存，不依赖外部函数
+            console.log(`📊 已同步 ${syncedCount} 个项目的统计数据`);
+            
+            // 保存到localStorage作为缓存
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              console.log('💾 统计数据已缓存到本地');
             } catch (error) {
-              console.error('Failed to save stats:', error);
+              console.error('Failed to save stats to localStorage:', error);
             }
+            
             return updated;
           } else {
-            return prev; // 返回原状态，避免不必要的重渲染
+            console.log('📊 统计数据已是最新，无需更新');
+            return prev;
           }
         });
       }
     } catch (error) {
-      console.error('❌ Failed to load batch stats:', error);
+      console.error('❌ 服务器数据同步失败:', error);
+      console.log('🔄 将继续使用本地缓存数据');
     } finally {
       setIsLoading(false);
     }
-  }, [isOnline]); // 只依赖isOnline
+  }, [isOnline]);
 
   // 获取统计数据
   const getStats = useCallback((wallpaperId) => {

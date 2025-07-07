@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 跨浏览器统计同步测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .test-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .button {
+            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .stats {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .browser-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 跨浏览器统计同步测试</h1>
+        
+        <div class="browser-info">
+            <h3>🌐 当前浏览器信息</h3>
+            <div id="browserInfo"></div>
+        </div>
+
+        <div class="test-item">
+            <h3>📊 API 连接测试</h3>
+            <button class="button" onclick="testApiConnection()">测试API连接</button>
+            <div id="apiStatus"></div>
+        </div>
+
+        <div class="test-item">
+            <h3>🎯 统计操作测试</h3>
+            <button class="button" onclick="recordView('test-item-1')">👁️ 记录查看</button>
+            <button class="button" onclick="recordLike('test-item-1')">❤️ 记录喜欢</button>
+            <button class="button" onclick="recordDownload('test-item-1')">⬇️ 记录下载</button>
+            <div id="operationStatus"></div>
+        </div>
+
+        <div class="test-item">
+            <h3>📈 实时统计数据</h3>
+            <button class="button" onclick="loadStats()">🔄 刷新统计</button>
+            <div class="stats" id="statsDisplay"></div>
+        </div>
+
+        <div class="test-item">
+            <h3>🗄️ 本地存储对比</h3>
+            <button class="button" onclick="compareStorage()">🔍 对比存储</button>
+            <div id="storageComparison"></div>
+        </div>
+
+        <div class="test-item">
+            <h3>📋 使用说明</h3>
+            <p><strong>测试步骤：</strong></p>
+            <ol>
+                <li>在当前浏览器中进行一些操作（查看、喜欢、下载）</li>
+                <li>打开另一个浏览器（Chrome、Firefox、Safari、Edge）</li>
+                <li>访问相同的URL: <code>http://192.168.163.183:3000</code></li>
+                <li>观察统计数据是否同步</li>
+                <li>在新浏览器中进行操作，观察是否实时同步</li>
+            </ol>
+        </div>
+
+        <div class="log" id="logDisplay">
+            <div class="log-entry">🚀 跨浏览器同步测试已启动...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://192.168.163.183:3001/api';
+        
+        // 显示浏览器信息
+        function showBrowserInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                browser: getBrowserName(),
+                platform: navigator.platform,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine
+            };
+            
+            document.getElementById('browserInfo').innerHTML = `
+                <div><strong>浏览器:</strong> ${info.browser}</div>
+                <div><strong>平台:</strong> ${info.platform}</div>
+                <div><strong>语言:</strong> ${info.language}</div>
+                <div><strong>在线状态:</strong> ${info.onLine ? '🟢 在线' : '🔴 离线'}</div>
+                <div><strong>Cookie:</strong> ${info.cookieEnabled ? '✅ 启用' : '❌ 禁用'}</div>
+            `;
+        }
+        
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome') && !ua.includes('Edg')) return '🌐 Chrome';
+            if (ua.includes('Firefox')) return '🦊 Firefox';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return '🔷 Safari';
+            if (ua.includes('Edg')) return '🎯 Edge';
+            return '❓ Unknown';
+        }
+        
+        // 记录日志
+        function log(message, type = 'info') {
+            const logDisplay = document.getElementById('logDisplay');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `${timestamp} ${icon} ${message}`;
+            logDisplay.appendChild(entry);
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+        }
+        
+        // 测试API连接
+        async function testApiConnection() {
+            const statusDiv = document.getElementById('apiStatus');
+            statusDiv.innerHTML = '🔄 正在测试API连接...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `<span class="success">✅ API连接正常</span><br>
+                        服务器时间: ${data.timestamp}<br>
+                        版本: ${data.version}`;
+                    log('API连接测试成功', 'success');
+                } else {
+                    throw new Error('API响应异常');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ API连接失败: ${error.message}</span>`;
+                log(`API连接失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 记录操作
+        async function recordAction(wallpaperId, action) {
+            const statusDiv = document.getElementById('operationStatus');
+            statusDiv.innerHTML = `🔄 正在记录操作: ${action}...`;
+            
+            try {
+                const response = await fetch(`${API_BASE}/stats/record`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ wallpaperId, action })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `<span class="success">✅ 操作记录成功: ${action}</span>`;
+                    log(`操作记录成功: ${action} -> ${wallpaperId}`, 'success');
+                    loadStats(); // 自动刷新统计
+                } else {
+                    throw new Error(data.error || '操作失败');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ 操作失败: ${error.message}</span>`;
+                log(`操作失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function recordView(id) { recordAction(id, 'view'); }
+        function recordLike(id) { recordAction(id, 'like'); }
+        function recordDownload(id) { recordAction(id, 'download'); }
+        
+        // 加载统计数据
+        async function loadStats() {
+            const statsDiv = document.getElementById('statsDisplay');
+            statsDiv.innerHTML = '🔄 正在加载统计数据...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/stats/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ wallpaperIds: ['test-item-1'] })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const stats = data.data['test-item-1'];
+                    statsDiv.innerHTML = `
+                        <div><strong>测试项目 (test-item-1) 统计:</strong></div>
+                        <div>👁️ 查看次数: ${stats.view_count || 0}</div>
+                        <div>❤️ 喜欢次数: ${stats.like_count || 0}</div>
+                        <div>⬇️ 下载次数: ${stats.download_count || 0}</div>
+                        <div>🕒 最后更新: ${stats.last_updated || '未知'}</div>
+                    `;
+                    log('统计数据加载成功', 'success');
+                } else {
+                    throw new Error('统计数据格式错误');
+                }
+            } catch (error) {
+                statsDiv.innerHTML = `<span class="error">❌ 加载失败: ${error.message}</span>`;
+                log(`统计数据加载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 比较本地存储
+        function compareStorage() {
+            const comparisonDiv = document.getElementById('storageComparison');
+            
+            try {
+                const localData = localStorage.getItem('labubu_click_stats');
+                const parsed = localData ? JSON.parse(localData) : {};
+                
+                comparisonDiv.innerHTML = `
+                    <div><strong>📦 localStorage 数据:</strong></div>
+                    <pre style="white-space: pre-wrap; font-size: 12px;">${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+                log('本地存储数据已显示', 'info');
+            } catch (error) {
+                comparisonDiv.innerHTML = `<span class="error">❌ 读取本地存储失败: ${error.message}</span>`;
+                log(`读取本地存储失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showBrowserInfo();
+            log('页面初始化完成');
+            
+            // 自动测试API连接
+            setTimeout(testApiConnection, 1000);
+            
+            // 自动加载统计数据
+            setTimeout(loadStats, 2000);
+        });
+        
+        // 监听在线状态变化
+        window.addEventListener('online', () => {
+            log('🌐 网络连接已恢复', 'success');
+            testApiConnection();
+        });
+        
+        window.addEventListener('offline', () => {
+            log('📴 网络连接已断开', 'warning');
+        });
+    </script>
+</body>
+</html> 

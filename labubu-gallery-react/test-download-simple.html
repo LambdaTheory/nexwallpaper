@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labubu Gallery 下载功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #17a2b8;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐰 Labubu Gallery 下载功能测试</h1>
+        
+        <div class="status" id="status">
+            准备测试下载功能...
+        </div>
+        
+        <div class="info">
+            <h3>🔍 测试说明：</h3>
+            <ul>
+                <li>点击下面按钮测试下载功能</li>
+                <li>检查浏览器下载列表确认是否成功</li>
+                <li>打开开发者工具查看详细日志</li>
+            </ul>
+        </div>
+        
+        <h2>📥 测试项目：</h2>
+        <button onclick="testLabubuImageDownload()">测试Labubu图片下载</button>
+        <button onclick="testLabubuVideoDownload()">测试Labubu视频下载</button>
+        <button onclick="testSimpleImageDownload()">测试简单图片下载</button>
+        <button onclick="testDirectLinkDownload()">测试直链下载</button>
+        
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // 简化的下载函数 - 模拟Gallery的下载逻辑
+        async function simpleDownload(url, fileName) {
+            try {
+                console.log('🚀 开始下载:', { url, fileName });
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.style.display = 'none';
+                link.rel = 'noopener noreferrer';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('✅ 下载链接已点击');
+                return true;
+            } catch (error) {
+                console.error('❌ 下载失败:', error);
+                return false;
+            }
+        }
+        
+        // 测试Labubu图片下载
+        async function testLabubuImageDownload() {
+            updateStatus('测试Labubu图片下载中...');
+            addResult('开始测试Labubu图片下载...', 'info');
+            
+            const imageUrl = 'https://labubuwallpaper.com/cdn-cgi/image/width=800,height=450,fit=cover,quality=85,format=auto/hero-labubu.jpg';
+            const fileName = 'labubu-hero-image.jpg';
+            
+            const success = await simpleDownload(imageUrl, fileName);
+            
+            if (success) {
+                addResult('Labubu图片下载已触发，请检查浏览器下载列表', 'success');
+                updateStatus('Labubu图片下载完成');
+            } else {
+                addResult('Labubu图片下载失败', 'error');
+                updateStatus('Labubu图片下载失败');
+            }
+        }
+        
+        // 测试Labubu视频下载
+        async function testLabubuVideoDownload() {
+            updateStatus('测试Labubu视频下载中...');
+            addResult('开始测试Labubu视频下载...', 'info');
+            
+            const videoUrl = 'https://labubuwallpaper.com/Labubu-Pink-Hoodie-Cracked-Wall%2CLabubu-Live-Wallpaper.mp4';
+            const fileName = 'labubu-pink-hoodie-video.mp4';
+            
+            const success = await simpleDownload(videoUrl, fileName);
+            
+            if (success) {
+                addResult('Labubu视频下载已触发，请检查浏览器下载列表', 'success');
+                updateStatus('Labubu视频下载完成');
+            } else {
+                addResult('Labubu视频下载失败', 'error');
+                updateStatus('Labubu视频下载失败');
+            }
+        }
+        
+        // 测试简单图片下载
+        async function testSimpleImageDownload() {
+            updateStatus('测试简单图片下载中...');
+            addResult('开始测试简单图片下载...', 'info');
+            
+            const imageUrl = 'https://via.placeholder.com/800x600/4285f4/ffffff?text=Simple+Download+Test';
+            const fileName = 'simple-test-image.png';
+            
+            const success = await simpleDownload(imageUrl, fileName);
+            
+            if (success) {
+                addResult('简单图片下载已触发，请检查浏览器下载列表', 'success');
+                updateStatus('简单图片下载完成');
+            } else {
+                addResult('简单图片下载失败', 'error');
+                updateStatus('简单图片下载失败');
+            }
+        }
+        
+        // 测试直链下载
+        async function testDirectLinkDownload() {
+            updateStatus('测试直链下载中...');
+            addResult('开始测试直链下载方法...', 'info');
+            
+            try {
+                const link = document.createElement('a');
+                link.href = 'https://picsum.photos/800/600';
+                link.download = 'direct-link-test.jpg';
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                addResult('直链下载已触发', 'success');
+                updateStatus('直链下载完成');
+            } catch (error) {
+                addResult(`直链下载失败: ${error.message}`, 'error');
+                updateStatus('直链下载失败');
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            addResult('下载功能测试页面已加载', 'success');
+            updateStatus('准备就绪 - 请选择测试项目');
+            
+            addResult(`浏览器: ${navigator.userAgent.substring(0, 80)}...`, 'info');
+        });
+    </script>
+</body>
+</html> 

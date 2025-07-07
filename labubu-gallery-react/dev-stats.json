@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "created": "2025-07-07T10:20:04.795Z",
+    "lastUpdated": "2025-07-07T10:20:04.795Z",
+    "version": "1.0.0",
+    "totalRecords": 3
+  },
+  "stats": {
+    "2": {
+      "view_count": 4,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:09:05.683Z",
+      "last_updated": "2025-07-07T10:20:04.795Z"
+    },
+    "5": {
+      "view_count": 1,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:10:35.460Z",
+      "last_updated": "2025-07-07T10:10:35.460Z"
+    },
+    "test-001": {
+      "view_count": 2,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T09:55:13.722Z",
+      "last_updated": "2025-07-07T09:55:22.762Z"
+    }
+  }
+}
