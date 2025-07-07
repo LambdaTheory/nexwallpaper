@@ -1,17 +1,38 @@
 {
   "metadata": {
-    "created": "2025-07-07T10:20:04.795Z",
-    "lastUpdated": "2025-07-07T10:20:04.795Z",
+    "created": "2025-07-07T10:44:58.122Z",
+    "lastUpdated": "2025-07-07T10:44:58.122Z",
     "version": "1.0.0",
-    "totalRecords": 3
+    "totalRecords": 10
   },
   "stats": {
+    "1": {
+      "view_count": 1,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:20:44.949Z",
+      "last_updated": "2025-07-07T10:20:44.949Z"
+    },
     "2": {
-      "view_count": 4,
+      "view_count": 5,
       "like_count": 0,
       "download_count": 0,
       "created": "2025-07-07T10:09:05.683Z",
-      "last_updated": "2025-07-07T10:20:04.795Z"
+      "last_updated": "2025-07-07T10:20:48.233Z"
+    },
+    "3": {
+      "view_count": 2,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:20:37.932Z",
+      "last_updated": "2025-07-07T10:20:49.971Z"
+    },
+    "4": {
+      "view_count": 1,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:20:40.365Z",
+      "last_updated": "2025-07-07T10:20:40.365Z"
     },
     "5": {
       "view_count": 1,
@@ -19,6 +40,34 @@
       "download_count": 0,
       "created": "2025-07-07T10:10:35.460Z",
       "last_updated": "2025-07-07T10:10:35.460Z"
+    },
+    "12": {
+      "view_count": 2,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:34:18.066Z",
+      "last_updated": "2025-07-07T10:44:58.122Z"
+    },
+    "60": {
+      "view_count": 3,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:30:56.908Z",
+      "last_updated": "2025-07-07T10:31:09.934Z"
+    },
+    "81": {
+      "view_count": 2,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:32:27.373Z",
+      "last_updated": "2025-07-07T10:32:31.220Z"
+    },
+    "163": {
+      "view_count": 2,
+      "like_count": 0,
+      "download_count": 0,
+      "created": "2025-07-07T10:37:32.982Z",
+      "last_updated": "2025-07-07T10:37:39.806Z"
     },
     "test-001": {
       "view_count": 2,

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { categories } from '../data/galleryData';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTagTranslation } from '../hooks/useTagTranslation';
 import LanguageSelector from './LanguageSelector';
 
 // 图标映射
@@ -35,6 +36,15 @@ const Sidebar = ({
   totalItems
 }) => {
   const { t } = useLanguage();
+  const { translateTag } = useTagTranslation();
+  
+  // 获取显示用的搜索词（翻译后的）
+  const displaySearchTerm = React.useMemo(() => {
+    if (!searchTerm) return '';
+    // 尝试翻译搜索词，如果是已知标签则显示翻译，否则显示原文
+    const translated = translateTag(searchTerm);
+    return translated;
+  }, [searchTerm, translateTag]);
   
   return (
     <>
@@ -131,7 +141,7 @@ const Sidebar = ({
                     <input
                       type="text"
                       placeholder={t('searchPlaceholder')}
-                      value={searchTerm}
+                      value={displaySearchTerm}
                       onChange={(e) => onSearchChange(e.target.value)}
                       className="pixiv-input"
                       style={{

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { galleryData } from '../data/galleryData';
+import { languages } from '../data/languages';
 
 /**
  * 画廊数据管理Hook - 优化懒加载版本
@@ -12,6 +13,70 @@ export const useGallery = () => {
   const [isTransitioning, setIsTransitioning] = useState(false); // 过渡状态
   const [randomSeed, setRandomSeed] = useState(() => Math.random() * 1000000); // 随机种子
   const [isInitialized, setIsInitialized] = useState(false); // 初始化标记
+
+  // 创建反向翻译映射（一次性构建，提高性能）
+  const reverseTranslationMap = useMemo(() => {
+    const reverseMap = new Map(); // 翻译后的标签 -> 原始标签
+    
+    Object.values(languages).forEach(language => {
+      const tagTranslations = language.translations?.tagTranslations;
+      if (tagTranslations) {
+        Object.entries(tagTranslations).forEach(([originalTag, translation]) => {
+          if (translation && translation !== originalTag) {
+            reverseMap.set(translation.toLowerCase(), originalTag);
+          }
+        });
+      }
+    });
+    
+    // Debug: 显示映射表构建情况
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🗺️ 反向翻译映射表构建完成，包含映射:', reverseMap.size);
+      console.log('📋 映射示例:', Array.from(reverseMap.entries()).slice(0, 5));
+    }
+    
+    return reverseMap;
+  }, []);
+
+  // 智能标签匹配函数 - 简化版本
+  const isTagMatch = useCallback((itemTag, searchTerm) => {
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    const lowerItemTag = itemTag.toLowerCase();
+    
+    // Debug: 记录搜索过程
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 搜索匹配: "${searchTerm}" vs 标签 "${itemTag}"`);
+    }
+    
+    // 1. 直接匹配原始标签
+    if (lowerItemTag.includes(lowerSearchTerm)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ 直接匹配成功: ${itemTag} 包含 ${searchTerm}`);
+      }
+      return true;
+    }
+    
+    // 2. 检查搜索词是否是某个翻译，如果是，匹配对应的原始标签
+    const originalTag = reverseTranslationMap.get(lowerSearchTerm);
+    if (originalTag && originalTag === itemTag) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ 反向翻译匹配: "${searchTerm}" -> "${originalTag}" === "${itemTag}"`);
+      }
+      return true;
+    }
+    
+    // 3. 检查搜索词的部分匹配
+    for (const [translatedTag, origTag] of reverseTranslationMap.entries()) {
+      if (translatedTag.includes(lowerSearchTerm) && origTag === itemTag) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ 部分翻译匹配: "${translatedTag}" 包含 "${searchTerm}" -> "${origTag}" === "${itemTag}"`);
+        }
+        return true;
+      }
+    }
+    
+    return false;
+  }, [reverseTranslationMap]);
 
   // 筛选后的数据
   const filteredData = useMemo(() => {
@@ -30,18 +95,25 @@ export const useGallery = () => {
       });
     }
 
-    // 按搜索词筛选
+    // 按搜索词筛选 - 增强搜索功能，支持多语言匹配
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(term) ||
-        item.tags?.some(tag => tag.toLowerCase().includes(term)) ||
-        item.category.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter(item => {
+        // 标题匹配
+        if (item.title.toLowerCase().includes(term)) return true;
+        
+        // 分类匹配
+        if (item.category.toLowerCase().includes(term)) return true;
+        
+        // 智能标签匹配 - 支持多语言
+        if (item.tags?.some(tag => isTagMatch(tag, term))) return true;
+        
+        return false;
+      });
     }
 
     return filtered;
-  }, [selectedFilters, searchTerm]);
+  }, [selectedFilters, searchTerm, isTagMatch]);
 
   // 初始化标记 - 避免首次加载时的双重刷新
   useEffect(() => {

@@ -29,6 +29,53 @@ export const useTagTranslation = () => {
     }
   }, [t]);
 
+  // 反向翻译：从翻译后的标签找到原始标签
+  const reverseTranslateTag = useCallback((translatedTag) => {
+    if (!translatedTag || typeof translatedTag !== 'string') return translatedTag;
+
+    try {
+      // 获取当前语言的所有标签翻译
+      const tagTranslations = t('tagTranslations');
+      
+      if (tagTranslations && typeof tagTranslations === 'object') {
+        // 查找翻译值对应的原始键
+        for (const [originalTag, translation] of Object.entries(tagTranslations)) {
+          if (translation === translatedTag) {
+            return originalTag;
+          }
+        }
+      }
+      
+      // 如果没找到对应的原始标签，返回输入值
+      return translatedTag;
+    } catch (error) {
+      console.error('Reverse tag translation error:', error);
+      return translatedTag;
+    }
+  }, [t]);
+
+  // 获取标签的所有可能匹配项（原始标签和翻译）
+  const getTagVariants = useCallback((tag) => {
+    const variants = new Set();
+    
+    // 添加原始标签
+    variants.add(tag);
+    
+    // 添加翻译后的标签
+    const translated = translateTag(tag);
+    if (translated !== tag) {
+      variants.add(translated);
+    }
+    
+    // 添加反向翻译的标签
+    const reversed = reverseTranslateTag(tag);
+    if (reversed !== tag) {
+      variants.add(reversed);
+    }
+    
+    return Array.from(variants);
+  }, [translateTag, reverseTranslateTag]);
+
   // 翻译标签数组
   const translateTags = useCallback((tags) => {
     if (!Array.isArray(tags)) return [];
@@ -44,6 +91,8 @@ export const useTagTranslation = () => {
 
   return {
     translateTag,
+    reverseTranslateTag,
+    getTagVariants,
     translateTags, 
     getTagDisplayText,
     currentLanguage
